@@ -9,6 +9,8 @@ function App() {
   useEffect(() => {
     fetch('/api/stats').then(r => r.json()).then(setStats).catch(() => {})
     fetch('/api/insights/top').then(r => r.json()).then(setInsights).catch(() => {})
+
+		fetch('/api/crawler/data').then(r => r.json()).then(data => setStats({ ...stats, crawlerData: data })).catch(() => {})
   }, [])
 
   const navItem = (icon, label, active = false) => (
