@@ -4,13 +4,31 @@ Multi-platform social media crawler using Playwright.
 Respects robots.txt and rate limits.
 """
 
+import argparse
 import hashlib
+import logging
+import sys
 import time
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from platforms import (
+    crawl_bilibili,
+    crawl_weibo,
+    crawl_xiaohongshu,
+    crawl_taptap,
+    crawl_douyin,
+)
+
 DB_PATH = Path(__file__).parent.parent / "data" / "gameinsight.db"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger(__name__)
 
 
 def get_db():
@@ -36,52 +54,80 @@ def save_feed(platform: str, url: str, content: str, author: str, published_at: 
     return cur.lastrowid
 
 
-def crawl_weibo(keyword: str, limit: int = 10):
-    """Placeholder: Weibo crawler using Playwright."""
-    print(f"[Crawler] Weibo search for '{keyword}'")
-    # TODO: implement Playwright-based scraping
-    time.sleep(1)
+PLATFORM_MAP = {
+    "bilibili": crawl_bilibili,
+    "weibo": crawl_weibo,
+    "xiaohongshu": crawl_xiaohongshu,
+    "taptap": crawl_taptap,
+    "douyin": crawl_douyin,
+}
 
 
-def crawl_bilibili(keyword: str, limit: int = 10):
-    """Placeholder: Bilibili comment crawler."""
-    print(f"[Crawler] Bilibili search for '{keyword}'")
-    time.sleep(1)
+def dispatch(platform: str, keyword: str, limit: int = 10):
+    """Dispatch crawl to the requested platform module."""
+    if platform not in PLATFORM_MAP:
+        raise ValueError(f"Unknown platform: {platform}. Supported: {list(PLATFORM_MAP.keys())}")
+
+    logger.info("Dispatching crawler | platform=%s keyword=%s limit=%d", platform, keyword, limit)
+    results = PLATFORM_MAP[platform](keyword=keyword, limit=limit)
+    logger.info("Crawl complete | platform=%s items=%d", platform, len(results))
+    return results
 
 
-def crawl_taptap(keyword: str, limit: int = 10):
-    """Placeholder: TapTap review crawler."""
-    print(f"[Crawler] TapTap search for '{keyword}'")
-    time.sleep(1)
-
-
-def crawl_xiaohongshu(keyword: str, limit: int = 10):
-    """Placeholder: Xiaohongshu note crawler."""
-    print(f"[Crawler] Xiaohongshu search for '{keyword}'")
-    time.sleep(1)
-
-
-def crawl_douyin(keyword: str, limit: int = 10):
-    """Placeholder: Douyin comment crawler."""
-    print(f"[Crawler] Douyin search for '{keyword}'")
-    time.sleep(1)
-
-
-def run_all(keyword: str = "英雄联盟"):
-    platforms = {
-        "weibo": crawl_weibo,
-        "bilibili": crawl_bilibili,
-        "taptap": crawl_taptap,
-        "xiaohongshu": crawl_xiaohongshu,
-        "douyin": crawl_douyin,
-    }
-    for name, fn in platforms.items():
+def run_all(keyword: str = "英雄联盟", limit: int = 10, rate_limit_seconds: int = 5):
+    """Run crawlers for all platforms sequentially with rate limiting."""
+    all_results = {}
+    for name in PLATFORM_MAP:
         try:
-            fn(keyword)
-            time.sleep(5)  # rate limit: 5s between platforms
-        except Exception as e:
-            print(f"[Crawler] Error on {name}: {e}")
+            results = dispatch(name, keyword, limit)
+            all_results[name] = results
+        except Exception as exc:
+            logger.error("Error crawling %s: %s", name, exc, exc_info=True)
+            all_results[name] = []
+        time.sleep(rate_limit_seconds)
+    return all_results
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="gameinsight-crawler",
+        description="GameInsight multi-platform social media crawler",
+    )
+    parser.add_argument(
+        "--platform",
+        choices=list(PLATFORM_MAP.keys()) + ["all"],
+        default="all",
+        help="Platform to crawl (default: all)",
+    )
+    parser.add_argument(
+        "--keyword",
+        default="英雄联盟",
+        help="Game keyword to search for (default: 英雄联盟)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Max items to fetch per platform (default: 10)",
+    )
+    parser.add_argument(
+        "--rate-limit",
+        type=int,
+        default=5,
+        help="Seconds to sleep between platform crawls (default: 5)",
+    )
+    return parser
+
+
+def main():
+    parser = build_parser()
+    args = parser.parse_args()
+
+    if args.platform == "all":
+        run_all(keyword=args.keyword, limit=args.limit, rate_limit_seconds=args.rate_limit)
+    else:
+        dispatch(args.platform, args.keyword, args.limit)
 
 
 if __name__ == "__main__":
-    run_all()
+    main()
