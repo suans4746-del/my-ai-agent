@@ -20,15 +20,11 @@ from platforms import (
     crawl_taptap,
     crawl_douyin,
 )
+from platforms.base import setup_logging, RateLimiter
 
 DB_PATH = Path(__file__).parent.parent / "data" / "gameinsight.db"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-logger = logging.getLogger(__name__)
+logger = setup_logging(level=logging.INFO)
 
 
 def get_db():
@@ -36,6 +32,29 @@ def get_db():
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def init_db():
+    """Ensure the feeds table exists."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS feeds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            platform TEXT NOT NULL,
+            url TEXT,
+            content TEXT NOT NULL,
+            author_hash TEXT,
+            published_at TEXT,
+            game_keyword TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+    logger.info("Database initialised at %s", DB_PATH)
 
 
 def save_feed(platform: str, url: str, content: str, author: str, published_at: str, game_keyword: str):
@@ -76,6 +95,7 @@ def dispatch(platform: str, keyword: str, limit: int = 10):
 
 def run_all(keyword: str = "英雄联盟", limit: int = 10, rate_limit_seconds: int = 5):
     """Run crawlers for all platforms sequentially with rate limiting."""
+    limiter = RateLimiter(min_delay=rate_limit_seconds, max_delay=rate_limit_seconds * 2)
     all_results = {}
     for name in PLATFORM_MAP:
         try:
@@ -84,7 +104,7 @@ def run_all(keyword: str = "英雄联盟", limit: int = 10, rate_limit_seconds: 
         except Exception as exc:
             logger.error("Error crawling %s: %s", name, exc, exc_info=True)
             all_results[name] = []
-        time.sleep(rate_limit_seconds)
+        limiter.acquire()
     return all_results
 
 
@@ -116,12 +136,21 @@ def build_parser() -> argparse.ArgumentParser:
         default=5,
         help="Seconds to sleep between platform crawls (default: 5)",
     )
+    parser.add_argument(
+        "--init-db",
+        action="store_true",
+        help="Initialise the SQLite database and exit",
+    )
     return parser
 
 
 def main():
     parser = build_parser()
     args = parser.parse_args()
+
+    if args.init_db:
+        init_db()
+        return
 
     if args.platform == "all":
         run_all(keyword=args.keyword, limit=args.limit, rate_limit_seconds=args.rate_limit)

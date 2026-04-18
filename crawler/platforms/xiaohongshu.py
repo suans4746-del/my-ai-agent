@@ -6,36 +6,49 @@ structured feed items.
 """
 
 import logging
-import time
-from typing import List, Dict, Any
+from typing import List
 
-logger = logging.getLogger(__name__)
+from .base import BaseCrawler, FeedItem, RateLimiter
 
 
-def crawl(keyword: str, limit: int = 10) -> List[Dict[str, Any]]:
-    """
-    Placeholder Xiaohongshu crawler.
+class XiaohongshuCrawler(BaseCrawler):
+    PLATFORM_NAME = "xiaohongshu"
 
-    Args:
-        keyword: Game name or keyword to search for.
-        limit: Maximum number of items to return.
+    def __init__(
+        self,
+        rate_limiter: RateLimiter = None,
+        logger: logging.Logger = None,
+    ):
+        super().__init__(rate_limiter=rate_limiter, logger=logger)
 
-    Returns:
-        List of feed dicts with keys:
-            platform, url, content, author, published_at, game_keyword,
-            likes, collects, comments.
-    """
-    logger.info("[Xiaohongshu] Starting crawl for keyword: %s (limit=%d)", keyword, limit)
-    results: List[Dict[str, Any]] = []
+    def crawl(self, keyword: str, limit: int = 10) -> List[FeedItem]:
+        """
+        Placeholder Xiaohongshu crawler using Playwright.
 
-    # TODO: implement Playwright-based scraping for Xiaohongshu search
-    # 1. Launch browser (headless)
-    # 2. Navigate to https://www.xiaohongshu.com/search_result?keyword=<keyword>
-    # 3. Extract note cards (title, content snippet, author, likes)
-    # 4. Handle infinite scroll pagination
-    # 5. Respect rate limits (sleep between scrolls)
-    # 6. Close browser
+        Args:
+            keyword: Game name or keyword to search for.
+            limit: Maximum number of items to return.
 
-    time.sleep(0.5)  # placeholder delay
-    logger.info("[Xiaohongshu] Crawl finished. Items collected: %d", len(results))
-    return results
+        Returns:
+            List of FeedItem instances.
+        """
+        self.logger.info("[Xiaohongshu] Starting crawl for keyword: %s (limit=%d)", keyword, limit)
+        results: List[FeedItem] = []
+
+        # TODO: implement Playwright-based scraping for Xiaohongshu search
+        # 1. Launch browser (headless)
+        # 2. Navigate to https://www.xiaohongshu.com/search_result?keyword=<keyword>
+        # 3. Extract note cards (title, content snippet, author, likes)
+        # 4. Handle infinite scroll pagination
+        # 5. Respect rate limits (sleep between scrolls)
+        # 6. Close browser
+
+        self.rate_limiter.sleep_jitter(base=0.5, jitter=0.2)
+        self.logger.info("[Xiaohongshu] Crawl finished. Items collected: %d", len(results))
+        return results
+
+
+def crawl(keyword: str, limit: int = 10) -> List[dict]:
+    """Convenience function matching the old API."""
+    crawler = XiaohongshuCrawler()
+    return crawler.run(keyword=keyword, limit=limit)
