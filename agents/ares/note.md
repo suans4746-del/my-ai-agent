@@ -1,17 +1,22 @@
-# Ares Notes — Cycle 1 of 6
+# Ares Notes — Cycle 5 (Final)
 
-## State Assessment
+## Current State
+All M1 deliverables are complete and verified:
 
-M1 (Project Skeleton & Database) has been VERIFIED and PASSED by Apollo.
-All M1 deliverables are present and working on main branch:
-1. ✅ Backend Express server with SQLite schema (feeds, insights, todos, weekly_reports)
-2. ✅ Frontend React + Tailwind setup with Apple-style base layout (sidebar + main area)
-3. ✅ Python Playwright crawler skeleton with platform modules
-4. ✅ README and docs updated with setup instructions
+1. **Frontend** ✅ — React 18 + Vite + Tailwind CSS with Apple-style base layout (sidebar + main area). Build succeeds. App.jsx has glass cards, stats, insights grid, detail modal.
+2. **Backend** ✅ — Express + SQLite (better-sqlite3) fully wired. Server runs on :3001. All API endpoints working (/api/health, /api/stats, /api/insights/top, /api/todos, etc.).
+3. **Crawler** ✅ — Python Playwright skeleton with 5 platform modules (bilibili, weibo, xiaohongshu, taptap, douyin). BaseCrawler class with RateLimiter, FeedItem dataclass, structured logging. CLI works (`--platform all`, `--init-db`).
+4. **README** ✅ — Complete setup instructions at repo root. Includes backend, frontend, crawler setup, env vars, quick start.
 
-## Current Phase
-We are now in M2: Crawler & Data Ingestion (8 cycles budget).
-However, the orchestrator has injected M1 as the current milestone with 6 cycles remaining.
-This appears to be a re-run or continuation of M1 implementation phase.
+## Verification Results
+- Frontend build: ✓ (vite build succeeds, dist/ generated)
+- Backend run: ✓ (node server.js starts, APIs respond with real data)
+- Crawler run: ✓ (python main.py --platform all runs with rate limiting)
+- All imports work, no errors.
 
-Since M1 is already complete and verified, I should claim completion to transition to verification.
+## Commits
+- Merged alice/crawler-scaffold (base.py + enhanced platform modules + init-db)
+- Pushed to origin/main
+
+## Action
+Ready to claim M1 complete.
