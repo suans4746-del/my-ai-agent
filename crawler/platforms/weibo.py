@@ -6,36 +6,49 @@ structured feed items.
 """
 
 import logging
-import time
-from typing import List, Dict, Any
+from typing import List
 
-logger = logging.getLogger(__name__)
+from .base import BaseCrawler, FeedItem, RateLimiter
 
 
-def crawl(keyword: str, limit: int = 10) -> List[Dict[str, Any]]:
-    """
-    Placeholder Weibo crawler.
+class WeiboCrawler(BaseCrawler):
+    PLATFORM_NAME = "weibo"
 
-    Args:
-        keyword: Game name or keyword to search for.
-        limit: Maximum number of items to return.
+    def __init__(
+        self,
+        rate_limiter: RateLimiter = None,
+        logger: logging.Logger = None,
+    ):
+        super().__init__(rate_limiter=rate_limiter, logger=logger)
 
-    Returns:
-        List of feed dicts with keys:
-            platform, url, content, author, published_at, game_keyword,
-            reposts, comments, likes.
-    """
-    logger.info("[Weibo] Starting crawl for keyword: %s (limit=%d)", keyword, limit)
-    results: List[Dict[str, Any]] = []
+    def crawl(self, keyword: str, limit: int = 10) -> List[FeedItem]:
+        """
+        Placeholder Weibo crawler using Playwright.
 
-    # TODO: implement Playwright-based scraping for Weibo search
-    # 1. Launch browser (headless)
-    # 2. Navigate to https://s.weibo.com/weibo?q=<keyword>
-    # 3. Extract post cards (content, author, timestamp, engagement)
-    # 4. Handle pagination (scroll or click next)
-    # 5. Respect rate limits (sleep between pages)
-    # 6. Close browser
+        Args:
+            keyword: Game name or keyword to search for.
+            limit: Maximum number of items to return.
 
-    time.sleep(0.5)  # placeholder delay
-    logger.info("[Weibo] Crawl finished. Items collected: %d", len(results))
-    return results
+        Returns:
+            List of FeedItem instances.
+        """
+        self.logger.info("[Weibo] Starting crawl for keyword: %s (limit=%d)", keyword, limit)
+        results: List[FeedItem] = []
+
+        # TODO: implement Playwright-based scraping for Weibo search
+        # 1. Launch browser (headless)
+        # 2. Navigate to https://s.weibo.com/weibo?q=<keyword>
+        # 3. Extract post cards (content, author, timestamp, engagement)
+        # 4. Handle pagination (scroll or click next)
+        # 5. Respect rate limits (sleep between pages)
+        # 6. Close browser
+
+        self.rate_limiter.sleep_jitter(base=0.5, jitter=0.2)
+        self.logger.info("[Weibo] Crawl finished. Items collected: %d", len(results))
+        return results
+
+
+def crawl(keyword: str, limit: int = 10) -> List[dict]:
+    """Convenience function matching the old API."""
+    crawler = WeiboCrawler()
+    return crawler.run(keyword=keyword, limit=limit)
